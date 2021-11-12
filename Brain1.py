@@ -202,6 +202,8 @@ class Brain1:
             self.left()
             
     def reinitIfRespawn(self):
+        if self.database.Car.last_collision < 999:
+            self.reinit = True
         pass
 
     def lidarThetaToGeneralTheta(self, theta):
