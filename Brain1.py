@@ -1,3 +1,4 @@
+from _typeshed import Self
 import time
 import pygame
 
@@ -79,3 +80,12 @@ class Brain1:
     def left(self, num: int = 1):
         for i in range(num):
             self.database.control.left()
+
+    def astarweight(self, car_point, point, trophy_point):
+        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(point, trophy_point)
+
+    def getGlobalWeight(self, point, trophy_point):
+        pass
+
+    def getLocalWeight(self, car_point, point):
+        pass
