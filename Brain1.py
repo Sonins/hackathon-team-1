@@ -63,10 +63,19 @@ class Brain1:
 
 
             trophy_point = (0, 0)
+            car_point = self.database.car.position
             for i in self.database.v2x_data:
                 if i.name == "Trophy":
                     trophy_point = (i.rect.x, i.rect.y)
-            
+
+            min_weight = INF * 2
+            min_angle = 0
+            for angle in range(0, 360, 45):
+                weight = self.astarweight(car_point, angle, trophy_point)
+                if min_weight > weight:
+                    min_weight = weight
+                    min_angle = angle
+
             # Implement Your Algorithm HERE!!
 
             # EXAMPLE CODE1: 속도 3으로 유지하면서 오른쪽으로 회전하기
@@ -124,3 +133,5 @@ class Brain1:
             return INF
         elif self.database.lidar.dat(theta)<100:
             return 100
+
+    def controlCar(self, theta)
