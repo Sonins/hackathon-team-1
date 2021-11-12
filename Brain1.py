@@ -225,3 +225,11 @@ class Brain1:
 
     def lidarThetaToGeneralTheta(self, theta):
         return (theta + self.database.car.direction - 90) % 360
+
+    def isFacedTraffic(self):
+
+        # 가까울때,
+        # 신호등을 마주보고 있을때
+        # 신호등 남은시간이 얼마 없을때
+        # 멈춰야함.
+        pass
