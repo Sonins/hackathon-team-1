@@ -137,4 +137,10 @@ class Brain1:
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
-        pass
+        if self.database.lidar.data[90]<100:
+            num= 10- self.database.lidar.data[90]//10
+            MAX_SPEED=self.database.car.speed-1.5*num
+            if self.database.car.speed > MAX_SPEED:
+                self.down()
+        
+        
