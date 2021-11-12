@@ -87,7 +87,7 @@ class Brain1:
                 point = self.getPointByTheta(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
                 self.map[round(point[0])][round(point[1])] = 1
                 
-
+            self.reinitIfRespawn()
             if self.isArriveAtGoal(car_point) or self.reinit:
                 min_weight = INF * 2
                 min_angle = 0
@@ -223,6 +223,8 @@ class Brain1:
 
 
     def reinitIfRespawn(self):
+        if self.database.Car.last_collision < 999:
+            self.reinit = True
         pass
 
     def lidarThetaToGeneralTheta(self, theta):
