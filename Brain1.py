@@ -2,6 +2,7 @@ import time
 import pygame
 import math
 from typing import Iterable, Tuple
+# import matplotlib.pyplot
 
 from LiDAR import LiDAR
 
@@ -74,9 +75,18 @@ class Brain1:
             if not self.database.v2x_data or not self.database.lidar.data:
                 continue
 
+            
+
             trophy_point = self.database.v2x_data['Trophy']
             car_point = self.database.car.position
             # self.database.car.last_collision
+
+            for i in range(0, 360):
+                if self.database.lidar.data[i] == 100:
+                    continue
+                point = self.getPointByTheta(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
+                self.map[round(point[0])][round(point[1])] = 1
+                
 
             if self.isArriveAtGoal(car_point) or self.reinit:
                 min_weight = INF * 2
@@ -89,15 +99,12 @@ class Brain1:
 
                 self.goal = self.getPointByTheta(car_point, min_angle, r=10)
                 self.goal_angle = min_angle
+                self.reinit = False
                 print(self.goal_angle)
             
-
-            if 180 >= self.goal_angle > 90:
-                self.left()
-            elif 180 < self.goal_angle < 360 and 0 < self.goal_angle < 90:
-                self.right(5)
             
             self.controlVelocity()
+            self.controlAngle()
             
 
             # Implement Your Algorithm HERE!!
@@ -131,8 +138,8 @@ class Brain1:
         ydiff = trophy_point[1] - point[1]
         distance = math.sqrt(xdiff * xdiff + ydiff * ydiff)
 
-        sin = distance / ydiff
-        cos = distance / xdiff
+        sin = ydiff / distance
+        cos = xdiff / distance
         
         x = point[0]
         y = point[1]
@@ -157,7 +164,7 @@ class Brain1:
         # if self.database.car.speed > MAX_SPEED -> self.down()
         if self.database.lidar.data[90] < 100:
             num= 10 - self.database.lidar.data[90]//10
-            MAX_SPEED = 10 - 1.0 * num
+            MAX_SPEED = 10 - 0.7 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
             else:
@@ -168,11 +175,19 @@ class Brain1:
     
     def getPointByTheta(self, car_point, theta, r=100):
         
-        x = car_point[0]+r*math.cos(theta)
-        y = car_point[1]+r*math.sin(theta)
+        x = car_point[0]+r*math.cos(self.toRadian(theta))
+        y = car_point[1]+r*math.sin(self.toRadian(theta))
 
         return (x, y)
     
+    def getPointByThetaFilp(self, car_point, theta, r=100):
+        x = car_point[0]+r*math.sin(self.toRadian(theta))
+        y = car_point[1]+r*math.cos(self.toRadian(theta))
+
+        return (x, y)
+
+    def toRadian(self, theta):
+        return theta * (math.pi / 180.0)
 
     def isArriveAtGoal(self, car_point):
         if distance(self.goal, car_point) < 5:
@@ -181,10 +196,13 @@ class Brain1:
         
         
     def controlAngle(self):
-        if (self.goal_angle>0 and self.goal_angle<90) or (self.goal_angle>270 and self.goal_angle<360):
-            self.right
-        elif self.goal_angle>90 and self.goal_angle<270:
-            self.left
+        if (self.goal_angle>0 and self.goal_angle<90) or (self.goal_angle >= 270 and self.goal_angle < 360):
+            self.right()
+        elif self.goal_angle > 90 and self.goal_angle < 270:
+            self.left()
             
     def reinitIfRespawn(self):
         pass
+
+    def lidarThetaToGeneralTheta(self, theta):
+        return (theta + self.database.car.direction - 90) % 360

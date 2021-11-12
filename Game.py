@@ -70,6 +70,7 @@ class Game:
         record = False
         temp_v2x_data = []
         crashed_cars = []
+        map = [[0] * 810] * 1300
         self.initial_time = time.time()
         while True:
             deltat = self.clock.tick(30)
