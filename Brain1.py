@@ -133,7 +133,8 @@ class Brain1:
             return 100
         elif self.database.lidar.data[theta]<100:
             return INF
-        elif self.database.lidar.dat(theta)<100:
-            return 100
 
-    def controlCar(self, theta)
+    def controlVelocity(self):
+        # if lidar[90] < 100 speed will go down.
+        # if self.database.car.speed > MAX_SPEED -> self.down()
+        pass
