@@ -1,8 +1,7 @@
-from _typeshed import Self
 import time
 import pygame
 import math
-from typing import Tuple
+from typing import Iterable, Tuple
 
 from LiDAR import LiDAR
 
@@ -71,11 +70,11 @@ class Brain1:
             '''
 
 
-            trophy_point = (0, 0)
+            if not self.database.v2x_data or not self.database.lidar.data:
+                continue
+
+            trophy_point = self.database.v2x_data['Trophy']
             car_point = self.database.car.position
-            for i in self.database.v2x_data:
-                if i.name == "Trophy":
-                    trophy_point = (i.rect.x, i.rect.y)
 
             if self.isArriveAtGoal(car_point):
                 min_weight = INF * 2
@@ -88,7 +87,15 @@ class Brain1:
 
                 self.goal = self.getPointByTheta(car_point, min_angle)
                 self.goal_angle = min_angle
-
+            print(self.goal_angle)
+            if 180 >= self.goal_angle > 90:
+                self.left()
+            elif 180 < self.goal_angle <= 0 and 0 < self.goal_angle < 90:
+                self.right()
+            else:
+                self.up()
+            
+            self.controlVelocity()
             
 
             # Implement Your Algorithm HERE!!
@@ -147,8 +154,8 @@ class Brain1:
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
         if self.database.lidar.data[90]<100:
-            num= 10- self.database.lidar.data[90]//10
-            MAX_SPEED=self.database.car.speed-1.5*num
+            num= 10 - self.database.lidar.data[90]//10
+            MAX_SPEED = 15 - 1.5 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
 
