@@ -99,6 +99,7 @@ class Brain1:
 
                 self.goal = self.getPointByTheta(car_point, min_angle, r=10)
                 self.goal_angle = min_angle
+                self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
                 self.reinit = False
                 print(self.goal_angle)
             
@@ -196,11 +197,31 @@ class Brain1:
         
         
     def controlAngle(self):
-        if (self.goal_angle>0 and self.goal_angle<90) or (self.goal_angle >= 270 and self.goal_angle < 360):
-            self.right()
-        elif self.goal_angle > 90 and self.goal_angle < 270:
-            self.left()
-            
+        if self.database.car.direction>0 and self.database.car.direction<90:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+                self.left()
+            else:
+                self.right()
+
+        elif self.database.car.direction>90 and self.database.car.direction<180:
+            if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
+                self.right()
+            else:
+                self.left()
+
+        elif self.database.car.direction>180 and self.database.car.direction<270:
+            if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
+                self.left()
+            else:
+                self.right()
+                
+        elif self.database.car.direction>270 and self.database.car.direction<360:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+                self.right()
+            else:
+                self.left()
+
+
     def reinitIfRespawn(self):
         pass
 
