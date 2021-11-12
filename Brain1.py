@@ -24,6 +24,7 @@ class Brain1:
         self.previous_count = -999
         self.traffic_light = []
         self.car_point = None
+        self.angle_buffer = []
 
     def run(self):
         self.goal = self.database.car.position
@@ -62,19 +63,30 @@ class Brain1:
                 self.map[0 if round(point[0]) < 0 else round(point[0])][0 if round(point[1]) < 0 else round(point[1])] = 1
                 
             if self.count - self.previous_count > 20:
-                min_weight = INF * 2
+                min_weight = 10 * INF
                 min_angle = 0
                 self.previous_count = self.count
-                for angle in range(0, 360, 45):
+                for angle in range(0, 360):
+                    
+                    if self.lidarThetaToGeneralTheta(angle) % 45 > 0:
+                        continue
                     weight = self.astarweight(angle, trophy_point)
-                    print(angle, weight)
+                    # print(angle, weight)
                     if min_weight > weight and weight < INF:
                         min_weight = weight                        
                         min_angle = angle
+                    
+                    if len(self.angle_buffer) > 5:
+                        self.angle_buffer.pop(0)
+                    self.angle_buffer.append(min_angle)
+                
+                min_angle = max(self.angle_buffer, key=self.angle_buffer.count)
+                print(min_angle)
                 self.goal = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(min_angle), r=30)
                 
                 self.goal_angle = min_angle
                 self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
+                # print(self.goal_generic_angle, min_weight)
                 
                 self.reinit = False
             
@@ -88,9 +100,9 @@ class Brain1:
             if self.database.car.direction == self.goal_generic_angle:
                 continue
 
-            if (self.database.car.direction - self.goal_generic_angle) % 360 > 180:
+            if (self.database.car.direction - self.goal_generic_angle) % 360 > 180 and self.database.lidar.data[180] > 30:
                 self.left(5)
-            else:
+            elif self.database.lidar.data[0] > 30:
                 self.right(5)
             
 
@@ -136,18 +148,18 @@ class Brain1:
         #     y = y + sin
         #     # if there is wall
         #     if self.map[round(x)][round(y)] == 1:
-        #         return 2 * (distance)
-        return distance * 10
+        #         return INF
+        return distance
 
     def getLocalWeight(self, theta):
         min_distance = 999
-        for i in range(theta - 22, theta + 23):
+        for i in range(theta - 20, theta + 20):
             min_distance = min(min_distance, self.database.lidar.data[i % 360])
             
-        if min_distance>=50:
+        if min_distance>=100:
             return 100 - min_distance
         else:
-            return INF * (100 - min_distance)
+            return INF
 
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
@@ -161,15 +173,18 @@ class Brain1:
         if min_distance < 100:
             num= 10 - min_distance//10
             MAX_SPEED = 5 - 0.5 * num
-            if self.database.car.speed > MAX_SPEED and self.database.car.speed > 1:
-                self.down(2)
+            if self.database.car.speed > MAX_SPEED:
+                if self.database.car.speed > 0:
+                    self.down()
+                if self.database.car.speed > 5:
+                    self.down(2)
             else:
                 self.up()
         else:       
             self.up()
 
         if self.isFacedTraffic() and self.database.car.speed > 0:
-            self.down()
+            self.down(self.database.car.speed)
 
     
     def getPointByTheta(self, theta, r=100):
@@ -241,10 +256,13 @@ class Brain1:
 
         for traffic in self.traffic_light:
             traffic_position = traffic['position']
-            if distance(self.database.car.position, traffic_position)< 20:
+
+            if distance(self.database.car.position, traffic_position)< 100:
                 Closeness = True
             else:
                 return False
+
+            remain_time=traffic["remain_time"]
 
             if remain_time < 2: 
                 runout = True
@@ -253,7 +271,7 @@ class Brain1:
                 return False
 
             if traffic['light'] == 'red' and runout:
-                return True
+                return False
             
 
             x = self.car_point[0]
@@ -261,7 +279,7 @@ class Brain1:
             cos = math.cos(self.goal_generic_angle)
             sin = math.sin(self.goal_generic_angle)
 
-            for i in range(30):
+            for i in range(100):
                 x = x + sin
                 y = y + cos
                 
@@ -273,8 +291,9 @@ class Brain1:
                    faced = True
 
             
-            remain_time=traffic["remain_time"]
             
-            if runout and Closeness and faced:
-                return True
+            
+            if Closeness and faced:
+                if traffic['light'] == 'red':
+                    return True
         return False
