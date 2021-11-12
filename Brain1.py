@@ -18,6 +18,7 @@ class Brain1:
         self.database = database
         self.map = [[0] * 1000] * 2000
         self.goal_angle = 0
+        self.reinit = False
 
     def run(self):
         self.goal = self.database.car.position
@@ -75,8 +76,9 @@ class Brain1:
 
             trophy_point = self.database.v2x_data['Trophy']
             car_point = self.database.car.position
+            # self.database.car.last_collision
 
-            if self.isArriveAtGoal(car_point):
+            if self.isArriveAtGoal(car_point) or self.reinit:
                 min_weight = INF * 2
                 min_angle = 0
                 for angle in range(0, 360, 45):
@@ -85,15 +87,15 @@ class Brain1:
                         min_weight = weight
                         min_angle = angle
 
-                self.goal = self.getPointByTheta(car_point, min_angle)
+                self.goal = self.getPointByTheta(car_point, min_angle, r=10)
                 self.goal_angle = min_angle
-            print(self.goal_angle)
+                print(self.goal_angle)
+            
+
             if 180 >= self.goal_angle > 90:
                 self.left()
-            elif 180 < self.goal_angle <= 0 and 0 < self.goal_angle < 90:
-                self.right()
-            else:
-                self.up()
+            elif 180 < self.goal_angle < 360 and 0 < self.goal_angle < 90:
+                self.right(5)
             
             self.controlVelocity()
             
@@ -119,9 +121,9 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, car_point, theta, trophy_point):
-        point = (0, 0)
-        point[0] = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
-        point[1] = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
+        x = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
+        y = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
+        point = (x, y)
         return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
@@ -135,7 +137,7 @@ class Brain1:
         x = point[0]
         y = point[1]
 
-        while abs(trophy_point - x) < 1:
+        while abs(trophy_point[0] - x) < 1:
             x = x + cos
             y = y + sin
             # if there is wall
@@ -153,22 +155,27 @@ class Brain1:
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
-        if self.database.lidar.data[90]<100:
+        if self.database.lidar.data[90] < 100:
             num= 10 - self.database.lidar.data[90]//10
-            MAX_SPEED = 15 - 1.5 * num
+            MAX_SPEED = 10 - 1.0 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
+            else:
+                self.up()
+        else:
+            self.up()
 
     
-    def getPointByTheta(self, car_point, theta):
-        point = (0, 0)
-        point[0] = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
-        point[1] = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
-        return point
+    def getPointByTheta(self, car_point, theta, r=100):
+        
+        x = car_point[0]+r*math.cos(theta)
+        y = car_point[1]+r*math.sin(theta)
+
+        return (x, y)
     
 
     def isArriveAtGoal(self, car_point):
-        if distance(self.goal, car_point) < 10:
+        if distance(self.goal, car_point) < 5:
             return True
         return False            
         
