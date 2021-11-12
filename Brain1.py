@@ -271,4 +271,3 @@ class Brain1:
                    return True
         return False
         
->>>>>>> 2f6af7429fef2987b57574680c13f2e0d5c6c104
