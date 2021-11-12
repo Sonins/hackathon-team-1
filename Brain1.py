@@ -82,7 +82,7 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, car_point, point, trophy_point):
-        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(point, trophy_point)
+        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, point)
 
     def getGlobalWeight(self, point, trophy_point):
         pass
