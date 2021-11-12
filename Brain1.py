@@ -104,7 +104,7 @@ class Brain1:
                 self.goal = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(min_angle), r=10)
                 # print(f"{car_point}-->{self.goal}, angle: {self.lidarThetaToGeneralTheta(min_angle)}")
                 self.goal_angle = min_angle
-                self.goal_generic_angle = self.lidarThetaToGeneralTheta(min_angle)
+                self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
                 self.reinit = False
 
             if not self.reinit:
@@ -210,11 +210,31 @@ class Brain1:
         
         
     def controlAngle(self):
-        if (self.goal_generic_angle>0 and self.goal_generic_angle<90) or (self.goal_generic_angle >= 270 and self.goal_generic_angle < 360):
-            self.right(3)
-        elif self.goal_generic_angle > 90 and self.goal_generic_angle < 270:
-            self.left(3)
-            
+        if self.database.car.direction>0 and self.database.car.direction<90:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+                self.left()
+            else:
+                self.right()
+
+        elif self.database.car.direction>90 and self.database.car.direction<180:
+            if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
+                self.right()
+            else:
+                self.left()
+
+        elif self.database.car.direction>180 and self.database.car.direction<270:
+            if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
+                self.left()
+            else:
+                self.right()
+                
+        elif self.database.car.direction>270 and self.database.car.direction<360:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+                self.right()
+            else:
+                self.left()
+
+
     def reinitIfRespawn(self):
         if self.database.car.last_collision < 999:
             self.reinit = True
