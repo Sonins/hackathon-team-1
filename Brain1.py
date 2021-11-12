@@ -17,9 +17,11 @@ def distance(point1: Tuple, point2: Tuple):
 class Brain1:
     def __init__(self, database):
         self.database = database
-        self.map = [[0] * 300] * 400
+        self.map = [[0] * 2000] * 1300
         self.goal_angle = 0
         self.reinit = False
+        self.count = 10
+        self.previous_count = -999
 
     def run(self):
         self.goal = self.database.car.position
@@ -79,40 +81,50 @@ class Brain1:
 
             trophy_point = self.database.v2x_data['Trophy']
             car_point = self.database.car.position
+            self.count = self.count + 1
             # self.database.car.last_collision
-
             for i in range(0, 360):
                 if self.database.lidar.data[i] == 100:
                     continue
                 if self.lidarThetaToGeneralTheta(i) == 0:
-                    print(point, i)
-                    point = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i], True)
+                    point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i], True)
                 else:
-                    point = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
-                
-                self.map[round(point[0])][round(point[1])] = 1
+                    point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
+                self.map[0 if round(point[0]) < 0 else round(point[0])][0 if round(point[1]) < 0 else round(point[1])] = 1
 
-            if self.isArriveAtGoal(car_point) or self.reinit:
+            if self.count - self.previous_count > 20:
                 min_weight = INF * 2
                 min_angle = 0
+                self.previous_count = self.count
                 for angle in range(0, 360, 45):
                     weight = self.astarweight(car_point, angle, trophy_point)
                     if min_weight > weight:
                         min_weight = weight                        
                         min_angle = angle
                 
-                self.goal = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(min_angle), r=10)
-                # print(f"{car_point}-->{self.goal}, angle: {self.lidarThetaToGeneralTheta(min_angle)}")
+                self.goal = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(min_angle), r=30)
+                
                 self.goal_angle = min_angle
                 self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
+                
                 self.reinit = False
-
+            
             if not self.reinit:
                 self.reinitIfRespawn()
             
             
             self.controlVelocity()
-            self.controlAngle()
+            # self.controlAngle()
+            
+            if self.database.car.direction == self.goal_generic_angle:
+                continue
+
+            if (self.database.car.direction - self.goal_generic_angle) % 360 > 180:
+                print(self.goal_generic_angle, self.database.car.direction, "left")
+                self.left(5)
+            else:
+                print(self.goal_generic_angle, self.database.car.direction, "right")
+                self.right(5)
             
 
             # Implement Your Algorithm HERE!!
@@ -136,10 +148,9 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, car_point, theta, trophy_point):
-        x = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
-        y = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
-        point = (x, y)
+        point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(theta))
         return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, theta)
+        # return self.getLocalWeight(car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
         xdiff = trophy_point[0] - point[0]
@@ -152,19 +163,18 @@ class Brain1:
         x = point[0]
         y = point[1]
 
-        while abs(trophy_point[0] - x) < 1:
+        while abs(trophy_point[0] - x) > 1:
             x = x + cos
             y = y + sin
             # if there is wall
             if self.map[round(x)][round(y)] == 1:
                 return INF
-        
         return distance
 
     def getLocalWeight(self, car_point, theta):
-        if self.database.lidar.data[theta]>=100:
-            return 100
-        elif self.database.lidar.data[theta]<100:
+        if self.database.lidar.data[theta]>=50:
+            return 100 - self.database.lidar.data[theta]
+        elif self.database.lidar.data[theta]<50:
             return INF
 
     def controlVelocity(self):
@@ -177,7 +187,7 @@ class Brain1:
 
         if min_distance < 100:
             num= 10 - min_distance//10
-            MAX_SPEED = 10 - 0.7 * num
+            MAX_SPEED = 10 - 1 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
             else:
@@ -193,11 +203,11 @@ class Brain1:
 
         return (x, y)
     
-    def getPointByThetaFilp(self, car_point, theta, r=100, printable=False):
-        x = car_point[0]+r*math.sin(self.toRadian(theta))
+    def getPointByThetaFlip(self, car_point, theta, r=100, printable=False):
+        x = car_point[0]-r*math.sin(self.toRadian(theta))
         y = car_point[1]-r*math.cos(self.toRadian(theta))
-        if printable:
-            print(r)
+        # if printable:
+        #     print(r)
         return (x, y)
 
     def toRadian(self, theta):
@@ -210,25 +220,25 @@ class Brain1:
         
         
     def controlAngle(self):
-        if self.database.car.direction>0 and self.database.car.direction<90:
+        if self.database.car.direction>0 and self.database.car.direction<=90:
             if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
                 self.left()
             else:
                 self.right()
 
-        elif self.database.car.direction>90 and self.database.car.direction<180:
+        elif self.database.car.direction>90 and self.database.car.direction<=180:
             if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
                 self.right()
             else:
                 self.left()
 
-        elif self.database.car.direction>180 and self.database.car.direction<270:
+        elif self.database.car.direction>180 and self.database.car.direction<=270:
             if self.goal_generic_angle<self.database.car.direction or (540-self.database.car.direction)<self.goal_generic_angle:
                 self.left()
             else:
                 self.right()
                 
-        elif self.database.car.direction>270 and self.database.car.direction<360:
+        elif self.database.car.direction>270 and self.database.car.direction<=360:
             if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
                 self.right()
             else:
