@@ -47,6 +47,7 @@ class Brain1:
                     traffic = {}
                     traffic['light'] = i[1]
                     traffic['position'] = i[2]
+                    traffic['height'] = i[3]
                     traffic['width'] = i[4]
                     traffic['remain_time'] = i[5]
                     self.traffic_light.append(traffic)
