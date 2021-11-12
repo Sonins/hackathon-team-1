@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from LiDAR import LiDAR
 
-INF = 1000000000
+INF = 10000000
 
 def distance(point1: Tuple, point2: Tuple):
     xdiff = point1[0] - point2[0]
@@ -67,10 +67,10 @@ class Brain1:
                 self.previous_count = self.count
                 for angle in range(0, 360, 45):
                     weight = self.astarweight(angle, trophy_point)
-                    if min_weight > weight:
+                    if min_weight > weight and weight < INF:
                         min_weight = weight                        
                         min_angle = angle
-                
+                print(min_angle, min_weight, self.database.lidar.data[min_angle])
                 self.goal = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(min_angle), r=30)
                 
                 self.goal_angle = min_angle
@@ -132,36 +132,41 @@ class Brain1:
         x = point[0]
         y = point[1]
 
-        while abs(trophy_point[0] - x) > 1:
-            x = x + cos
-            y = y + sin
-            # if there is wall
-            if self.map[round(x)][round(y)] == 1:
-                return INF
-        return distance
+        # while abs(trophy_point[0] - x) > 1:
+        #     x = x + cos
+        #     y = y + sin
+        #     # if there is wall
+        #     if self.map[round(x)][round(y)] == 1:
+        #         return 2 * (distance)
+        return distance / 10
 
     def getLocalWeight(self, theta):
-        if self.database.lidar.data[theta]>=50:
-            return 100 - self.database.lidar.data[theta]
-        elif self.database.lidar.data[theta]<50:
-            return INF
+        min_distance = 999
+        for i in range(theta - 22, theta + 23):
+            min_distance = min(min_distance, self.database.lidar.data[i % 360])
+            
+        if min_distance>=50:
+            return 100 - min_distance
+        else:
+            return INF * (100 - min_distance)
 
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
 
         min_distance = 999
-        # for i in range(75, 105):
-        min_distance = min(min_distance, self.database.lidar.data[90])
+        MAX_SPEED = 7
+        for i in range(80, 110):
+            min_distance = min(min_distance, self.database.lidar.data[i])
 
         if min_distance < 100:
             num= 10 - min_distance//10
-            MAX_SPEED = 10 - 1 * num
+            MAX_SPEED = 7 - 0.7 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
             else:
                 self.up()
-        else:
+        else:       
             self.up()
 
         if self.isFacedTraffic() and self.database.car.speed > 0:
