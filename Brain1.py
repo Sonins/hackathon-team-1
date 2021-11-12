@@ -88,7 +88,7 @@ class Brain1:
 
                 self.goal = self.getPointByTheta(car_point, min_angle)
                 self.goal_angle = min_angle
-            
+
             
 
             # Implement Your Algorithm HERE!!
@@ -146,7 +146,11 @@ class Brain1:
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
-        pass
+        if self.database.lidar.data[90]<100:
+            num= 10- self.database.lidar.data[90]//10
+            MAX_SPEED=self.database.car.speed-1.5*num
+            if self.database.car.speed > MAX_SPEED:
+                self.down()
 
     
     def getPointByTheta(self, car_point, theta):
@@ -160,3 +164,6 @@ class Brain1:
         if distance(self.goal, car_point) < 10:
             return True
         return False            
+        
+        
+        
