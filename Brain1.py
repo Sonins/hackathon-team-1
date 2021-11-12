@@ -2,7 +2,7 @@ import time
 import pygame
 import math
 from typing import Iterable, Tuple
-# import matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 from LiDAR import LiDAR
 
@@ -17,7 +17,7 @@ def distance(point1: Tuple, point2: Tuple):
 class Brain1:
     def __init__(self, database):
         self.database = database
-        self.map = [[0] * 1000] * 2000
+        self.map = [[0] * 300] * 400
         self.goal_angle = 0
         self.reinit = False
 
@@ -84,24 +84,31 @@ class Brain1:
             for i in range(0, 360):
                 if self.database.lidar.data[i] == 100:
                     continue
-                point = self.getPointByTheta(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
-                self.map[round(point[0])][round(point[1])] = 1
+                if self.lidarThetaToGeneralTheta(i) == 0:
+                    print(point, i)
+                    point = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i], True)
+                else:
+                    point = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
                 
-            self.reinitIfRespawn()
+                self.map[round(point[0])][round(point[1])] = 1
+
             if self.isArriveAtGoal(car_point) or self.reinit:
                 min_weight = INF * 2
                 min_angle = 0
                 for angle in range(0, 360, 45):
                     weight = self.astarweight(car_point, angle, trophy_point)
                     if min_weight > weight:
-                        min_weight = weight
+                        min_weight = weight                        
                         min_angle = angle
-
-                self.goal = self.getPointByTheta(car_point, min_angle, r=10)
+                
+                self.goal = self.getPointByThetaFilp(car_point, self.lidarThetaToGeneralTheta(min_angle), r=10)
+                # print(f"{car_point}-->{self.goal}, angle: {self.lidarThetaToGeneralTheta(min_angle)}")
                 self.goal_angle = min_angle
                 self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
                 self.reinit = False
-                print(self.goal_angle)
+
+            if not self.reinit:
+                self.reinitIfRespawn()
             
             
             self.controlVelocity()
@@ -163,8 +170,13 @@ class Brain1:
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
-        if self.database.lidar.data[90] < 100:
-            num= 10 - self.database.lidar.data[90]//10
+
+        min_distance = 999
+        for i in range(75, 105):
+           min_distance = min(min_distance, self.database.lidar.data[i])
+
+        if min_distance < 100:
+            num= 10 - min_distance//10
             MAX_SPEED = 10 - 0.7 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
@@ -177,14 +189,15 @@ class Brain1:
     def getPointByTheta(self, car_point, theta, r=100):
         
         x = car_point[0]+r*math.cos(self.toRadian(theta))
-        y = car_point[1]+r*math.sin(self.toRadian(theta))
+        y = car_point[1]-r*math.sin(self.toRadian(theta))
 
         return (x, y)
     
-    def getPointByThetaFilp(self, car_point, theta, r=100):
+    def getPointByThetaFilp(self, car_point, theta, r=100, printable=False):
         x = car_point[0]+r*math.sin(self.toRadian(theta))
-        y = car_point[1]+r*math.cos(self.toRadian(theta))
-
+        y = car_point[1]-r*math.cos(self.toRadian(theta))
+        if printable:
+            print(r)
         return (x, y)
 
     def toRadian(self, theta):
@@ -223,9 +236,8 @@ class Brain1:
 
 
     def reinitIfRespawn(self):
-        if self.database.Car.last_collision < 999:
+        if self.database.car.last_collision < 999:
             self.reinit = True
-        pass
 
     def lidarThetaToGeneralTheta(self, theta):
         return (theta + self.database.car.direction - 90) % 360
