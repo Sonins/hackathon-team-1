@@ -105,7 +105,7 @@ class Brain1:
     def astarweight(self, car_point, theta, trophy_point):
         point = (0, 0)
         point[0] = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
-        point[1] = car_point[1]+self.database.lidar.data[theta]*math.cos(theta)
+        point[1] = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
         return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
