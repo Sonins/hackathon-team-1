@@ -2,6 +2,7 @@ from _typeshed import Self
 import time
 import pygame
 import math
+from typing import Tuple
 
 from LiDAR import LiDAR
 
@@ -20,7 +21,7 @@ class Brain1:
             time.sleep(0.001)
             _ = pygame.event.get()
 
-            
+
             '''
             ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
             ☆☆☆☆☆ DO NOT CHANGE ANOTHER CODE IN 2021-Hackathon-Simulator!!! ☆☆☆☆☆
@@ -60,6 +61,12 @@ class Brain1:
                 self.database.v2x_data
             '''
 
+
+            trophy_point = (0, 0)
+            for i in self.database.v2x_data:
+                if i.name == "Trophy":
+                    trophy_point = (i.rect.x, i.rect.y)
+            
             # Implement Your Algorithm HERE!!
 
             # EXAMPLE CODE1: 속도 3으로 유지하면서 오른쪽으로 회전하기
@@ -87,10 +94,10 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, car_point, theta, trophy_point):
-        point = (,)
-        point[0] = car_point[0]+self.database.lidar.dat(theta)*math.cos(theta)
-        point[1] = car_point[1]+self.database.lidar.dat(theta)*math.cos(theta)
-        return self.getGlobalWeight(theta, trophy_point) + self.getLocalWeight(car_point, theta)
+        point = (0, 0)
+        point[0] = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
+        point[1] = car_point[1]+self.database.lidar.data[theta]*math.cos(theta)
+        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
         xdiff = trophy_point[0] - point[0]
