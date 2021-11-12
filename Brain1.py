@@ -129,7 +129,9 @@ class Brain1:
         return distance
 
     def getLocalWeight(self, car_point, theta):
-        if self.database.lidar.dat(theta)>100:
+        if self.database.lidar.data[theta]>=100:
+            return 100
+        elif self.database.lidar.data[theta]<100:
             return INF
         elif self.database.lidar.dat(theta)<100:
             return 100
