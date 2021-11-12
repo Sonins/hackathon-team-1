@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from LiDAR import LiDAR
 
-INF = 1000000000
+INF = 10000000
 
 def distance(point1: Tuple, point2: Tuple):
     xdiff = point1[0] - point2[0]
@@ -23,6 +23,7 @@ class Brain1:
         self.count = 10
         self.previous_count = -999
         self.traffic_light = []
+        self.car_point = None
 
     def run(self):
         self.goal = self.database.car.position
@@ -40,7 +41,6 @@ class Brain1:
             
 
             trophy_point = self.database.v2x_data['Trophy']
-            print(self.database.v2x_data)
             
             for i in self.database.v2x_data.values():
                 if i[0] == 'Crosswalk':
@@ -52,16 +52,13 @@ class Brain1:
                     traffic['remain_time'] = i[5]
                     self.traffic_light.append(traffic)
 
-            car_point = self.database.car.position
+            self.car_point = self.database.car.position
             self.count = self.count + 1
             # self.database.car.last_collision
             for i in range(0, 360):
                 if self.database.lidar.data[i] == 100:
                     continue
-                if self.lidarThetaToGeneralTheta(i) == 0:
-                    point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i], True)
-                else:
-                    point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
+                point = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
                 self.map[0 if round(point[0]) < 0 else round(point[0])][0 if round(point[1]) < 0 else round(point[1])] = 1
 
             if self.count - self.previous_count > 20:
@@ -69,12 +66,12 @@ class Brain1:
                 min_angle = 0
                 self.previous_count = self.count
                 for angle in range(0, 360, 45):
-                    weight = self.astarweight(car_point, angle, trophy_point)
-                    if min_weight > weight:
+                    weight = self.astarweight(angle, trophy_point)
+                    if min_weight > weight and weight < INF:
                         min_weight = weight                        
                         min_angle = angle
-                
-                self.goal = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(min_angle), r=30)
+                print(min_angle, min_weight, self.database.lidar.data[min_angle])
+                self.goal = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(min_angle), r=30)
                 
                 self.goal_angle = min_angle
                 self.goal_generic_angle = self.lidarThetaToGeneralTheta(self.goal_angle)
@@ -92,10 +89,8 @@ class Brain1:
                 continue
 
             if (self.database.car.direction - self.goal_generic_angle) % 360 > 180:
-                print(self.goal_generic_angle, self.database.car.direction, "left")
                 self.left(5)
             else:
-                print(self.goal_generic_angle, self.database.car.direction, "right")
                 self.right(5)
             
 
@@ -121,10 +116,10 @@ class Brain1:
         for i in range(num):
             self.database.control.left()
 
-    def astarweight(self, car_point, theta, trophy_point):
-        point = self.getPointByThetaFlip(car_point, self.lidarThetaToGeneralTheta(theta))
-        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(car_point, theta)
-        # return self.getLocalWeight(car_point, theta)
+    def astarweight(self, theta, trophy_point):
+        point = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(theta))
+        return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(theta)
+        # return self.getLocalWeight(self.car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
         xdiff = trophy_point[0] - point[0]
@@ -137,49 +132,57 @@ class Brain1:
         x = point[0]
         y = point[1]
 
-        while abs(trophy_point[0] - x) > 1:
-            x = x + cos
-            y = y + sin
-            # if there is wall
-            if self.map[round(x)][round(y)] == 1:
-                return INF
-        return distance
+        # while abs(trophy_point[0] - x) > 1:
+        #     x = x + cos
+        #     y = y + sin
+        #     # if there is wall
+        #     if self.map[round(x)][round(y)] == 1:
+        #         return 2 * (distance)
+        return distance / 10
 
-    def getLocalWeight(self, car_point, theta):
-        if self.database.lidar.data[theta]>=50:
-            return 100 - self.database.lidar.data[theta]
-        elif self.database.lidar.data[theta]<50:
-            return INF
+    def getLocalWeight(self, theta):
+        min_distance = 999
+        for i in range(theta - 22, theta + 23):
+            min_distance = min(min_distance, self.database.lidar.data[i % 360])
+            
+        if min_distance>=50:
+            return 100 - min_distance
+        else:
+            return INF * (100 - min_distance)
 
     def controlVelocity(self):
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
 
         min_distance = 999
-        for i in range(75, 105):
-           min_distance = min(min_distance, self.database.lidar.data[i])
+        MAX_SPEED = 7
+        for i in range(80, 110):
+            min_distance = min(min_distance, self.database.lidar.data[i])
 
         if min_distance < 100:
             num= 10 - min_distance//10
-            MAX_SPEED = 10 - 1 * num
+            MAX_SPEED = 7 - 0.7 * num
             if self.database.car.speed > MAX_SPEED:
                 self.down()
             else:
                 self.up()
-        else:
+        else:       
             self.up()
 
+        if self.isFacedTraffic() and self.database.car.speed > 0:
+            self.down()
+
     
-    def getPointByTheta(self, car_point, theta, r=100):
+    def getPointByTheta(self, theta, r=100):
         
-        x = car_point[0]+r*math.cos(self.toRadian(theta))
-        y = car_point[1]-r*math.sin(self.toRadian(theta))
+        x = self.car_point[0]+r*math.cos(self.toRadian(theta))
+        y = self.car_point[1]-r*math.sin(self.toRadian(theta))
 
         return (x, y)
     
-    def getPointByThetaFlip(self, car_point, theta, r=100, printable=False):
-        x = car_point[0]-r*math.sin(self.toRadian(theta))
-        y = car_point[1]-r*math.cos(self.toRadian(theta))
+    def getPointByThetaFlip(self, theta, r=100):
+        x = self.car_point[0]-r*math.sin(self.toRadian(theta))
+        y = self.car_point[1]-r*math.cos(self.toRadian(theta))
         # if printable:
         #     print(r)
         return (x, y)
@@ -187,8 +190,8 @@ class Brain1:
     def toRadian(self, theta):
         return theta * (math.pi / 180.0)
 
-    def isArriveAtGoal(self, car_point):
-        if distance(self.goal, car_point) < 5:
+    def isArriveAtGoal(self):
+        if distance(self.goal, self.car_point) < 5:
             return True
         return False            
         
@@ -243,15 +246,16 @@ class Brain1:
             cos = math.cos(self.goal_generic_angle)
             sin = math.sin(self.goal_generic_angle)
 
-            for i in range(100):
-                x = x + cos
-                y = y + sin
+            for i in range(30):
+                x = x + sin
+                y = y + cos
                 
                 traffic_position = traffic['position']
                 width = traffic['width']
                 height = traffic['height']
                 if traffic_position[0] - width / 2 <= x <= traffic_position[0] + width / 2 and \
                    traffic_position[1] - height / 2 <= y <= traffic_position[1] + height / 2:
+<<<<<<< HEAD
                    faced = True
 
             if distance(self.database.car.position, traffic_position)< 5:
@@ -263,3 +267,8 @@ class Brain1:
             if runout and Closeness and faced:
                 return True
         return False
+=======
+                   return True
+        return False
+        
+>>>>>>> 2f6af7429fef2987b57574680c13f2e0d5c6c104
