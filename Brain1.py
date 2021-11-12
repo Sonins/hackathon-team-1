@@ -2,10 +2,12 @@ from _typeshed import Self
 import time
 import pygame
 
+INF = 1000000000
 
 class Brain1:
     def __init__(self, database):
         self.database = database
+        self.map = [[0] * 1000] * 2000
 
     def run(self):
         while True:
