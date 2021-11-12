@@ -80,6 +80,16 @@ class Brain1:
             
 
             trophy_point = self.database.v2x_data['Trophy']
+            print(self.database.v2x_data)
+            traffic_light = []
+            for i in self.database.v2x_data.values():
+                if i[0] == 'Crosswalk':
+                    traffic = {}
+                    traffic['light'] = i[1]
+                    traffic['position'] = i[2]
+                    traffic['remain_time'] = i[3]
+                    traffic_light.append(traffic)
+
             car_point = self.database.car.position
             self.count = self.count + 1
             # self.database.car.last_collision
