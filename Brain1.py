@@ -232,4 +232,23 @@ class Brain1:
         # 신호등을 마주보고 있을때
         # 신호등 남은시간이 얼마 없을때
         # 멈춰야함.
-        pass
+
+
+        for traffic in self.traffic_light:
+            x = self.car_point[0]
+            y = self.car_point[1]
+            cos = math.cos(self.goal_generic_angle)
+            sin = math.sin(self.goal_generic_angle)
+
+            for i in range(100):
+                x = x + cos
+                y = y + sin
+                
+                traffic_position = traffic['position']
+                width = traffic['width']
+                height = traffic['height']
+                if traffic_position[0] - width / 2 <= x <= traffic_position[0] + width / 2 and \
+                   traffic_position[1] - height / 2 <= y <= traffic_position[1] + height / 2:
+                   return True
+                
+        
