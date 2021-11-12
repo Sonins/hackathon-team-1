@@ -1,6 +1,9 @@
 from _typeshed import Self
 import time
 import pygame
+import math
+
+from LiDAR import LiDAR
 
 INF = 1000000000
 
@@ -84,10 +87,16 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, car_point, theta, trophy_point):
+        point = (,)
+        point[0] = car_point[0]+self.database.lidar.dat(theta)*math.cos(theta)
+        point[1] = car_point[1]+self.database.lidar.dat(theta)*math.cos(theta)
         return self.getGlobalWeight(theta, trophy_point) + self.getLocalWeight(car_point, theta)
 
     def getGlobalWeight(self, theta, trophy_point):
         pass
 
     def getLocalWeight(self, car_point, theta):
-        pass
+        if self.database.lidar.dat(theta)>100:
+            return INF
+        elif self.database.lidar.dat(theta)<100:
+            return 100
