@@ -174,7 +174,10 @@ class Brain1:
         
         
     def controlAngle(self):
-        pass    
-
+        if (self.goal_angle>0 and self.goal_angle<90) or (self.goal_angle>270 and self.goal_angle<360):
+            self.right
+        elif self.goal_angle>90 and self.goal_angle<270:
+            self.left
+            
     def reinitIfRespawn(self):
         pass
