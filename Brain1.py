@@ -41,7 +41,7 @@ class Brain1:
             
 
             trophy_point = self.database.v2x_data['Trophy']
-            
+            self.traffic_light = []
             for i in self.database.v2x_data.values():
                 if i[0] == 'Crosswalk':
                     traffic = {}
@@ -60,17 +60,17 @@ class Brain1:
                     continue
                 point = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(i), self.database.lidar.data[i])
                 self.map[0 if round(point[0]) < 0 else round(point[0])][0 if round(point[1]) < 0 else round(point[1])] = 1
-
+                
             if self.count - self.previous_count > 20:
                 min_weight = INF * 2
                 min_angle = 0
                 self.previous_count = self.count
                 for angle in range(0, 360, 45):
                     weight = self.astarweight(angle, trophy_point)
+                    print(angle, weight)
                     if min_weight > weight and weight < INF:
                         min_weight = weight                        
                         min_angle = angle
-                print(min_angle, min_weight, self.database.lidar.data[min_angle])
                 self.goal = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(min_angle), r=30)
                 
                 self.goal_angle = min_angle
@@ -117,9 +117,8 @@ class Brain1:
             self.database.control.left()
 
     def astarweight(self, theta, trophy_point):
-        point = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(theta))
+        point = self.getPointByThetaFlip(self.lidarThetaToGeneralTheta(theta), r=30)
         return self.getGlobalWeight(point, trophy_point) + self.getLocalWeight(theta)
-        # return self.getLocalWeight(self.car_point, theta)
 
     def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
         xdiff = trophy_point[0] - point[0]
@@ -138,7 +137,7 @@ class Brain1:
         #     # if there is wall
         #     if self.map[round(x)][round(y)] == 1:
         #         return 2 * (distance)
-        return distance / 10
+        return distance * 10
 
     def getLocalWeight(self, theta):
         min_distance = 999
@@ -161,9 +160,9 @@ class Brain1:
 
         if min_distance < 100:
             num= 10 - min_distance//10
-            MAX_SPEED = 7 - 0.7 * num
-            if self.database.car.speed > MAX_SPEED:
-                self.down()
+            MAX_SPEED = 5 - 0.5 * num
+            if self.database.car.speed > MAX_SPEED and self.database.car.speed > 1:
+                self.down(2)
             else:
                 self.up()
         else:       
@@ -185,7 +184,7 @@ class Brain1:
         y = self.car_point[1]-r*math.cos(self.toRadian(theta))
         # if printable:
         #     print(r)
-        return (x, y)
+        return (x if x > 0 else 0, y if y > 0 else 0)
 
     def toRadian(self, theta):
         return theta * (math.pi / 180.0)
@@ -241,6 +240,22 @@ class Brain1:
         faced = False
 
         for traffic in self.traffic_light:
+            traffic_position = traffic['position']
+            if distance(self.database.car.position, traffic_position)< 20:
+                Closeness = True
+            else:
+                return False
+
+            if remain_time < 2: 
+                runout = True
+
+            if traffic['light'] == 'green' and not runout:
+                return False
+
+            if traffic['light'] == 'red' and runout:
+                return True
+            
+
             x = self.car_point[0]
             y = self.car_point[1]
             cos = math.cos(self.goal_generic_angle)
@@ -250,24 +265,16 @@ class Brain1:
                 x = x + sin
                 y = y + cos
                 
-                traffic_position = traffic['position']
+                
                 width = traffic['width']
                 height = traffic['height']
                 if traffic_position[0] - width / 2 <= x <= traffic_position[0] + width / 2 and \
                    traffic_position[1] - height / 2 <= y <= traffic_position[1] + height / 2:
-<<<<<<< HEAD
                    faced = True
 
-            if distance(self.database.car.position, traffic_position)< 5:
-                Closeness = True
-
+            
             remain_time=traffic["remain_time"]
-            if remain_time<2: 
-                runout = True
+            
             if runout and Closeness and faced:
                 return True
         return False
-=======
-                   return True
-        return False
-        
