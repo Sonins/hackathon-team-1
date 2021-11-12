@@ -233,6 +233,9 @@ class Brain1:
         # 신호등 남은시간이 얼마 없을때
         # 멈춰야함.
 
+        Closeness=False
+        runout=False
+        faced = False
 
         for traffic in self.traffic_light:
             x = self.car_point[0]
@@ -249,6 +252,14 @@ class Brain1:
                 height = traffic['height']
                 if traffic_position[0] - width / 2 <= x <= traffic_position[0] + width / 2 and \
                    traffic_position[1] - height / 2 <= y <= traffic_position[1] + height / 2:
-                   return True
-                
-        
+                   faced = True
+
+            if distance(self.database.car.position, traffic_position)< 5:
+                Closeness = True
+
+            remain_time=traffic["remain_time"]
+            if remain_time<2: 
+                runout = True
+            if runout and Closeness and faced:
+                return True
+        return False
