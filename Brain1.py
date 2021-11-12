@@ -175,3 +175,6 @@ class Brain1:
         
     def controlAngle(self):
         pass    
+
+    def reinitIfRespawn(self):
+        pass
