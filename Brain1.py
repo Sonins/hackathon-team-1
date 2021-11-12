@@ -8,12 +8,21 @@ from LiDAR import LiDAR
 
 INF = 1000000000
 
+def distance(point1: Tuple, point2: Tuple):
+    xdiff = point1[0] - point2[0]
+    ydiff = point1[1] - point2[1]
+    return math.sqrt(xdiff * xdiff + ydiff * ydiff)
+
+
 class Brain1:
     def __init__(self, database):
         self.database = database
         self.map = [[0] * 1000] * 2000
+        self.goal_angle = 0
 
     def run(self):
+        self.goal = self.database.car.position
+        
         while True:
             if self.database.stop:
                 break
@@ -68,23 +77,23 @@ class Brain1:
                 if i.name == "Trophy":
                     trophy_point = (i.rect.x, i.rect.y)
 
-            min_weight = INF * 2
-            min_angle = 0
-            for angle in range(0, 360, 45):
-                weight = self.astarweight(car_point, angle, trophy_point)
-                if min_weight > weight:
-                    min_weight = weight
-                    min_angle = angle
+            if self.isArriveAtGoal(car_point):
+                min_weight = INF * 2
+                min_angle = 0
+                for angle in range(0, 360, 45):
+                    weight = self.astarweight(car_point, angle, trophy_point)
+                    if min_weight > weight:
+                        min_weight = weight
+                        min_angle = angle
+
+                self.goal = self.getPointByTheta(car_point, min_angle)
+                self.goal_angle = min_angle
+            
+            
 
             # Implement Your Algorithm HERE!!
 
             # EXAMPLE CODE1: 속도 3으로 유지하면서 오른쪽으로 회전하기
-            self.right()
-
-            if self.database.car.speed <= 2:
-                self.up()
-            elif self.database.car.speed > 3:
-                self.down()
 
     def up(self, num: int = 1):
         for i in range(num):
@@ -138,3 +147,16 @@ class Brain1:
         # if lidar[90] < 100 speed will go down.
         # if self.database.car.speed > MAX_SPEED -> self.down()
         pass
+
+    
+    def getPointByTheta(self, car_point, theta):
+        point = (0, 0)
+        point[0] = car_point[0]+self.database.lidar.data[theta]*math.cos(theta)
+        point[1] = car_point[1]+self.database.lidar.data[theta]*math.sin(theta)
+        return point
+    
+
+    def isArriveAtGoal(self, car_point):
+        if distance(self.goal, car_point) < 10:
+            return True
+        return False            
