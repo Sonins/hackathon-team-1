@@ -22,6 +22,7 @@ class Brain1:
         self.reinit = False
         self.count = 10
         self.previous_count = -999
+        self.traffic_light = []
 
     def run(self):
         self.goal = self.database.car.position
@@ -81,14 +82,14 @@ class Brain1:
 
             trophy_point = self.database.v2x_data['Trophy']
             print(self.database.v2x_data)
-            traffic_light = []
+            
             for i in self.database.v2x_data.values():
                 if i[0] == 'Crosswalk':
                     traffic = {}
                     traffic['light'] = i[1]
                     traffic['position'] = i[2]
                     traffic['remain_time'] = i[3]
-                    traffic_light.append(traffic)
+                    self.traffic_light.append(traffic)
 
             car_point = self.database.car.position
             self.count = self.count + 1
@@ -135,6 +136,8 @@ class Brain1:
             else:
                 print(self.goal_generic_angle, self.database.car.direction, "right")
                 self.right(5)
+            
+
             
 
             # Implement Your Algorithm HERE!!
