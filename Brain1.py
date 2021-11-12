@@ -86,8 +86,25 @@ class Brain1:
     def astarweight(self, car_point, theta, trophy_point):
         return self.getGlobalWeight(theta, trophy_point) + self.getLocalWeight(car_point, theta)
 
-    def getGlobalWeight(self, theta, trophy_point):
-        pass
+    def getGlobalWeight(self, point: Tuple, trophy_point: Tuple):
+        xdiff = trophy_point[0] - point[0]
+        ydiff = trophy_point[1] - point[1]
+        distance = math.sqrt(xdiff * xdiff + ydiff * ydiff)
+
+        sin = distance / ydiff
+        cos = distance / xdiff
+        
+        x = point[0]
+        y = point[1]
+
+        while abs(trophy_point - x) < 1:
+            x = x + cos
+            y = y + sin
+            # if there is wall
+            if self.map[round(x)][round(y)] == 1:
+                return INF
+        
+        return distance
 
     def getLocalWeight(self, car_point, theta):
         pass
