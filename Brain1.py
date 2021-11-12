@@ -198,7 +198,7 @@ class Brain1:
         
     def controlAngle(self):
         if self.database.car.direction>0 and self.database.car.direction<90:
-            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.database.car.direction:
                 self.left()
             else:
                 self.right()
@@ -216,7 +216,7 @@ class Brain1:
                 self.right()
                 
         elif self.database.car.direction>270 and self.database.car.direction<360:
-            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.goal_generic_angle:
+            if self.goal_generic_angle>self.database.car.direction and self.goal_generic_angle<180+self.database.car.direction:
                 self.right()
             else:
                 self.left()
