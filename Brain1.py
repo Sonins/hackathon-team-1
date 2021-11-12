@@ -166,4 +166,5 @@ class Brain1:
         return False            
         
         
-        
+    def controlAngle(self):
+        pass    
